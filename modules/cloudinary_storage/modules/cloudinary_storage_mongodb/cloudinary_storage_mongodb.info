@@ -1,0 +1,8 @@
+name = Cloudinary Storage MongoDB
+description = The module provides stores information in mongodb for uploaded Cloudinary files.
+package = Cloudinary
+core = 7.x
+dependencies[] = cloudinary_storage
+dependencies[] = mongodb
+files[] = CloudinaryStorageMongodb.inc
+files[] = cloudinary_storage_mongodb.test

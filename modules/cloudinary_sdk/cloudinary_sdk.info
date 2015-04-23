@@ -1,0 +1,8 @@
+name = Cloudinary SDK
+description = The module provides a library of Cloudinary PHP SDK for developers working with Cloudinary service.
+package = Cloudinary
+core = 7.x
+dependencies[] = libraries (>= 2.0)
+files[] = cloudinary_sdk.test
+configure = admin/config/media/cloudinary
+php = 5.3

@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * File for the cloudinary_storage_mongodb module.
+ */
+
+/**
+ * Implements hook_cloudinary_storage_info().
+ */
+function cloudinary_storage_mongodb_cloudinary_storage_info() {
+  return array(
+    'cloudinary_storage_mongodb' => array(
+      'title' => t('Mongodb'),
+      'class' => 'CloudinaryStorageMongodb',
+    ),
+  );
+}

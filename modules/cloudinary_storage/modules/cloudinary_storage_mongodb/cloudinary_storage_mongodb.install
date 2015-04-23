@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Provides installation functions.
+ */
+
+/**
+ * Implements hook_disable().
+ */
+function cloudinary_storage_mongodb_disable() {
+  // Delete all saved resource data in file.
+  $storage = new CloudinaryStorageMongodb();
+  $storage->clear();
+}

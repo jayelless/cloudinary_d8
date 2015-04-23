@@ -1,0 +1,95 @@
+<?php
+
+/**
+ * @file
+ * File for the cloudinary_storage_file module.
+ */
+
+/**
+ * Destination for file storage.
+ */
+define('CLOUDINARY_STORAGE_FILE_PATH', 'private://cloudinary_storage');
+
+/**
+ * File name for folder metadata.
+ */
+define('CLOUDINARY_STORAGE_FILE_FOLDER_NAME', '.metadata');
+
+/**
+ * Implements hook_cloudinary_storage_info().
+ */
+function cloudinary_storage_file_cloudinary_storage_info() {
+  return array(
+    'cloudinary_storage_file' => array(
+      'title' => t('File'),
+      'class' => 'CloudinaryStorageFile',
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for cloudinary_sdk_settings().
+ *
+ * Alters the setting form for Cloudinary settings.
+ *
+ * @see cloudinary_sdk_settings()
+ */
+function cloudinary_storage_file_form_cloudinary_sdk_settings_alter(&$form, $form_state) {
+  // Cloudinary resource data will be save into private file system.
+  $message = t('Cloudinary resource data will be save into private system after enable file storage.');
+  $wrappers = file_get_stream_wrappers();
+
+  // Display warning message if private file system is not set.
+  if (!isset($wrappers['private'])) {
+    $message .= '<br />' . t('Please configure the private file system path.');
+    $message .= '<br />' . l(t('Configure'), 'admin/config/media/file-system', array(
+      'query' => drupal_get_destination(),
+      'attributes' => array(
+        'class' => array('module-link', 'module-link-configure'))));
+  }
+  // Display warning message if private file system is CloudinaryStreamWrapper.
+  elseif ($wrappers['private']['class'] == 'CloudinaryStreamWrapper') {
+    $message .= '<br />' . t('The current stream wrapper class of private file system is CloudinaryStreamWrapper.');
+    $message .= '<br />' . t('You should be change with another stream wrapper class for private file system.');
+  }
+  else {
+    return;
+  }
+
+  $form['storage']['cloudinary_storage_default_warning'] = array(
+    '#type' => 'container',
+    '#states' => array(
+      'visible' => array(
+        ':input[name="cloudinary_storage_default"]' => array('value' => 'cloudinary_storage_file'),
+      ),
+    ),
+  );
+
+  $form['storage']['cloudinary_storage_default_warning']['cloudinary_storage_file'] = array(
+    '#markup' => '<div class="messages warning">' . $message . '</div>',
+  );
+
+  $form['#validate'][] = 'cloudinary_storage_file_settings_validate';
+}
+
+/**
+ * Validator for the cloudinary_sdk_settings() form.
+ */
+function cloudinary_storage_file_settings_validate($form, &$form_state) {
+  $storage = $form_state['values']['cloudinary_storage_default'];
+
+  if ($storage == 'cloudinary_storage_file') {
+    $wrappers = file_get_stream_wrappers();
+    $message = '';
+
+    if (!isset($wrappers['private'])) {
+      $message .= t('Please configure the private file system path.');
+      form_set_error('cloudinary_storage_default', $message);
+    }
+    elseif ($wrappers['private']['class'] == 'CloudinaryStreamWrapper') {
+      $message .= t('The current stream wrapper class of private file system is CloudinaryStreamWrapper.');
+      $message .= '<br />' . t('You should be change with another stream wrapper class for private file system.');
+      form_set_error('cloudinary_storage_default', $message);
+    }
+  }
+}

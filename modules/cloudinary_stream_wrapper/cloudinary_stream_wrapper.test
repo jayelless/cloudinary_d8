@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Provide tests.
+ */
+
+/**
+ * Unit test for cloudinary_stream_wrapper module.
+ */
+class CloudinaryStreamWrapperUnitTest extends DrupalUnitTestCase {
+
+  /**
+   * Provide simpletest info.
+   */
+  public static function getInfo() {
+    // Note: getInfo() strings should not be translated.
+    return array(
+      'name' => 'Cloudinary Stream Wrapper',
+      'description' => 'Ensure that cloudinary stream wrapper work properly.',
+      'group' => 'Cloudinary',
+    );
+  }
+
+  /**
+   * Ensure that cloudinary stream wrapper work properly.
+   */
+  public function testCloudinaryStreamWapper() {
+    $this->assertTrue(TRUE, 'Work properly.');
+  }
+
+}

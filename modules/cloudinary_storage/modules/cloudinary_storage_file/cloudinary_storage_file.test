@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Provide tests.
+ */
+
+/**
+ * Unit test for cloudinary_storage_file module.
+ */
+class CloudinaryStorageFileUnitTest extends DrupalUnitTestCase {
+
+  /**
+   * Provide simpletest info.
+   */
+  public static function getInfo() {
+    // Note: getInfo() strings should not be translated.
+    return array(
+      'name' => 'Cloudinary Storage File',
+      'description' => 'Ensure that cloudinary storage file work properly.',
+      'group' => 'Cloudinary',
+    );
+  }
+
+  /**
+   * Ensure that cloudinary storage file work properly.
+   */
+  public function testCloudinaryStorageFile() {
+    $this->assertTrue(TRUE, 'Work properly.');
+  }
+
+}

@@ -1,0 +1,836 @@
+<?php
+
+/**
+ * @file
+ * File for the Cloudinary module.
+ */
+
+/**
+ * Sample file on cloudinary for image effect preview.
+ */
+define('CLOUDINARY_SAMPLE', 'cloudinary://drupal_sample.png');
+
+/**
+ * Effects for effects param visible states.
+ */
+define('CLOUDINARY_VISIBLE_STATES_EFFECT', 'sepia,brightness,saturation,hue,oil_paint,vignette,pixelate,pixelate_faces,gradient_fade,blur,tilt_shift,sharpen,unsharp_mask,pixelate_region,red,blue,green,contrast,vibrance,fill_light,blur_region,blur_faces,make_transparent,trim,shadow,colorize');
+
+/**
+ * Crop mode for gravity visible states.
+ */
+define('CLOUDINARY_VISIBLE_STATES_CROP', 'fill,crop,thumb,pad,lfill,lpad,mpad');
+
+/**
+ * Implements hook_theme().
+ */
+function cloudinary_theme() {
+  return array(
+    'cloudinary_crop_summary' => array(
+      'variables' => array(
+        'data' => NULL,
+      ),
+    ),
+    'cloudinary_image_style_preview' => array(
+      'variables' => array(
+        'original' => NULL,
+        'preview' => NULL,
+      ),
+    ),
+  );
+}
+
+/**
+ * Theme function for Cloudinary effect.
+ */
+function theme_cloudinary_crop_summary($variables) {
+  $attributes = 'None';
+  $data = cloudinary_preprocess_transformation($variables['data']);
+  if (!empty($data)) {
+    $attribute = array();
+    foreach ($data as $key => $value) {
+      if (is_array($value)) {
+        $value = implode('.', array_filter($value));
+      }
+      $attribute[] = "$key: $value";
+    }
+
+    $attributes = implode(', ', $attribute);
+  }
+
+  return t('Image will have cloudinary effects applied with attributes : @attributes', array('@attributes' => $attributes));
+}
+
+/**
+ * Returns HTML for a cloudinary preview of an image style.
+ *
+ * @ingroup themeable
+ */
+function theme_cloudinary_image_style_preview($variables) {
+  $sample_width = 160;
+  $sample_height = 160;
+  // Set up original file information.
+  $original = $variables['original'];
+  $original_image = cloudinary_stream_wrapper_remote_image_info($original);
+  if ($original_image['width'] > $original_image['height']) {
+    $original_width = min($original_image['width'], $sample_width);
+    $original_height = round($original_width / $original_image['width'] * $original_image['height']);
+  }
+  else {
+    $original_height = min($original_image['height'], $sample_height);
+    $original_width = round($original_height / $original_image['height'] * $original_image['width']);
+  }
+  $original_attributes = array_intersect_key($original_image, array('width' => '', 'height' => ''));
+  $original_attributes['style'] = 'width: ' . $original_width . 'px; height: ' . $original_height . 'px;';
+  // Set up preview file information.
+  $preview = $variables['preview'];
+  $preview_image = cloudinary_stream_wrapper_remote_image_info($preview);
+  if ($preview_image['width'] > $preview_image['height']) {
+    $preview_width = min($preview_image['width'], $sample_width);
+    $preview_height = round($preview_width / $preview_image['width'] * $preview_image['height']);
+  }
+  else {
+    $preview_height = min($preview_image['height'], $sample_height);
+    $preview_width = round($preview_height / $preview_image['height'] * $preview_image['width']);
+  }
+  $preview_attributes = array_intersect_key($preview_image, array('width' => '', 'height' => ''));
+  $preview_attributes['style'] = 'width: ' . $preview_width . 'px; height: ' . $preview_height . 'px;';
+
+  $cloudinary_original_image = theme('image', array(
+    'path' => $original,
+    'alt' => t('Sample original image'),
+    'title' => '',
+    'attributes' => $original_attributes,
+  ));
+
+  $cloudinary_preview_image = theme('image', array(
+    'path' => $preview,
+    'alt' => t('Sample modified image'),
+    'title' => '',
+    'attributes' => $preview_attributes,
+  ));
+
+  $output = '<div class="image-style-preview preview clearfix">';
+  $output .= '<div class="preview-image-wrapper">';
+  $output .= t('original') . ' (' . l(t('view actual size'), $original) . ')';
+  $output .= '<div class="preview-image original-image" style="' . $original_attributes['style'] . '">';
+  $output .= '<a href="' . $original . '">' . $cloudinary_original_image . '</a>';
+  $output .= '<div class="height" style="height: ' . $original_height . 'px"><span>' . $original_image['height'] . 'px</span></div>';
+  $output .= '<div class="width" style="width: ' . $original_width . 'px"><span>' . $original_image['width'] . 'px</span></div>';
+  $output .= '</div>';
+  $output .= '</div>';
+  // Build the preview of the image style.
+  $output .= '<div class="preview-image-wrapper">';
+  $output .= t('transformation') . ' (' . l(t('view actual size'), $preview) . ')';
+  $output .= '<div class="preview-image modified-image" style="' . $preview_attributes['style'] . '">';
+  $output .= '<a href="' . $preview . '">' . $cloudinary_preview_image . '</a>';
+  $output .= '<div class="height" style="height: ' . $preview_height . 'px"><span>' . $preview_image['height'] . 'px</span></div>';
+  $output .= '<div class="width" style="width: ' . $preview_width . 'px"><span>' . $preview_image['width'] . 'px</span></div>';
+  $output .= '</div>';
+  $output .= '</div>';
+  $output .= '</div>';
+
+  return $output;
+}
+
+/**
+ * Implements hook_cloudinary_stream_wrapper_transformation().
+ */
+function cloudinary_cloudinary_stream_wrapper_transformation() {
+  $path = drupal_get_path('module', 'cloudinary');
+
+  return array(
+    'cloudinary_crop' => array(
+      'title' => t('Cloudinary crop'),
+      'callback' => 'cloudinary_transformation_cloudinary_crop',
+      'file' => $path . '/includes/cloudinary.transformation.cloudinary.inc',
+    ),
+    'image_crop' => array(
+      'title' => t('Crop'),
+      'callback' => 'cloudinary_transformation_image_crop',
+      'file' => $path . '/includes/cloudinary.transformation.drupal.inc',
+    ),
+    'image_desaturate' => array(
+      'title' => t('Desaturate'),
+      'callback' => 'cloudinary_transformation_image_desaturate',
+    ),
+    'image_resize' => array(
+      'title' => t('Resize'),
+      'callback' => 'cloudinary_transformation_image_resize',
+    ),
+    'image_rotate' => array(
+      'title' => t('Rotate'),
+      'callback' => 'cloudinary_transformation_image_rotate',
+    ),
+    'image_scale' => array(
+      'title' => t('Scale'),
+      'callback' => 'cloudinary_transformation_image_scale',
+    ),
+    'image_scale_and_crop' => array(
+      'title' => t('Scale and crop'),
+      'callback' => 'cloudinary_transformation_image_scale_and_crop',
+    ),
+  );
+}
+
+/**
+ * Convert image effect to special structure for cloudinary style.
+ */
+function cloudinary_transformation_image($data, $extra = NULL) {
+  if ($extra) {
+    if (is_array($extra)) {
+      $data = array_merge($data, $extra);
+    }
+    else {
+      $data['crop'] = $extra;
+    }
+  }
+
+  $type = CLOUDINARY_STREAM_WRAPPER_TRANSFORMATION_NEW;
+  if (isset($data['type'])) {
+    $type = $data['type'];
+    unset($data['type']);
+  }
+
+  return array('type' => $type, 'data' => $data);
+}
+
+/**
+ * Implements hook_image_effect_info().
+ */
+function cloudinary_image_effect_info() {
+  $effects = array();
+
+  $effects['cloudinary_crop'] = array(
+    'label' => t('Cloudinary crop'),
+    'help' => t('Apply effects, resizing, cropping, face detection and tons of image processing capabilities.'),
+    'effect callback' => 'cloudinary_empty_effect',
+    'dimensions passthrough' => TRUE,
+    'summary theme' => 'cloudinary_crop_summary',
+    'form callback' => 'cloudinary_crop_form',
+  );
+
+  return $effects;
+}
+
+/**
+ * Ignore cloudinary effect with php.
+ */
+function cloudinary_empty_effect(&$image, $data) {
+  return TRUE;
+}
+
+/**
+ * Settings form for the Cloudinary image effect.
+ */
+function cloudinary_crop_form($data) {
+  $path = drupal_get_path('module', 'cloudinary');
+  $container = array(
+    '#prefix' => '<div class="container-inline clearfix">',
+    '#suffix' => '</div>',
+  );
+
+  $form = array(
+    '#attached' => array(
+      'library' => array(
+        array('system', 'ui.slider'),
+        array('system', 'farbtastic'),
+      ),
+      'js' => array("$path/js/cloudinary.js"),
+      'css' => array("$path/css/cloudinary.css"),
+    ),
+  );
+
+  $form['cloudinary'] = array();
+
+  // Show the thumbnail preview.
+  $form['cloudinary']['preview'] = array(
+    '#prefix' => '<div class="clearfix">',
+    '#suffix' => '</div>',
+    '#tree' => FALSE,
+  );
+
+  $form['cloudinary']['preview']['thumbnail'] = array(
+    '#prefix' => '<div id="cloudinary_transformation_preview">',
+    '#suffix' => '</div>',
+    '#type' => 'item',
+    '#title' => t('Preview'),
+    '#markup' => cloudinary_crop_form_preview($data),
+  );
+
+  $form['cloudinary']['preview']['reset'] = array(
+    '#value' => t('Reset'),
+    '#type' => 'button',
+  );
+
+  $form['cloudinary']['preview']['preview'] = array(
+    '#value' => t('Preview'),
+    '#type' => 'button',
+    '#ajax' => array(
+      'callback' => 'cloudinary_crop_form_preview_callback',
+      'wrapper' => 'cloudinary_transformation_preview',
+    ),
+  );
+
+  $form['cloudinary']['resize_crop'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Resize & Crop'),
+  );
+
+  $form['cloudinary']['resize_crop']['one'] = $container;
+
+  $form['cloudinary']['resize_crop']['one']['width'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'width'),
+    '#title' => t('Width'),
+    '#default_value' => cloudinary_value_get($data, 'width'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider')),
+  );
+
+  $form['cloudinary']['resize_crop']['one']['height'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'height'),
+    '#title' => t('Height'),
+    '#default_value' => cloudinary_value_get($data, 'height'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider')),
+  );
+
+  $form['cloudinary']['resize_crop']['one']['crop'] = array(
+    '#type' => 'select',
+    '#parents' => array('data', 'crop'),
+    '#title' => t('Mode'),
+    '#default_value' => cloudinary_value_get($data, 'crop'),
+    '#options' => _cloudinary_options_crop(),
+  );
+
+  $form['cloudinary']['resize_crop']['two'] = $container;
+
+  $form['cloudinary']['resize_crop']['two']['gravity'] = array(
+    '#type' => 'select',
+    '#parents' => array('data', 'gravity'),
+    '#title' => t('Gravity'),
+    '#default_value' => cloudinary_value_get($data, 'gravity'),
+    '#options' => _cloudinary_options_gravity(),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="data[crop]"]' => _cloudinary_build_visible_states(CLOUDINARY_VISIBLE_STATES_CROP),
+      ),
+    ),
+  );
+
+  $x_y_states = array('visible' => array(':input[name="data[crop]"]' => array(array('value' => 'crop'))));
+  $form['cloudinary']['resize_crop']['two']['x'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'x'),
+    '#title' => t('X'),
+    '#default_value' => cloudinary_value_get($data, 'x'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider')),
+    '#states' => $x_y_states,
+  );
+
+  $form['cloudinary']['resize_crop']['two']['y'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'y'),
+    '#title' => t('Y'),
+    '#default_value' => cloudinary_value_get($data, 'y'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider')),
+    '#states' => $x_y_states,
+  );
+
+  $form['cloudinary']['shape'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Shape'),
+  );
+
+  $form['cloudinary']['shape']['one'] = $container;
+
+  $form['cloudinary']['shape']['one']['radius'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'radius'),
+    '#title' => t('Corner Radius'),
+    '#default_value' => cloudinary_value_get($data, 'radius'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider'), 'data' => 'dynamic_0_100_slider-small'),
+  );
+
+  $form['cloudinary']['shape']['one']['angle'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'angle'),
+    '#title' => t('Rotation Angle'),
+    '#default_value' => cloudinary_value_get($data, 'angle'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider'), 'data' => 'fixed_0_360_slider-small'),
+  );
+
+  $form['cloudinary']['shape']['one']['automatic_rotation'] = array(
+    '#type' => 'checkbox',
+    '#parents' => array('data', 'automatic_rotation'),
+    '#title' => t('Automatic rotation'),
+    '#default_value' => cloudinary_value_get($data, 'automatic_rotation'),
+  );
+
+  $form['cloudinary']['shape']['two'] = $container;
+
+  $form['cloudinary']['shape']['two']['angles'] = array(
+    '#type' => 'checkboxes',
+    '#parents' => array('data', 'angles'),
+    '#title' => t('Angles'),
+    '#title_display' => 'invisible',
+    '#default_value' => cloudinary_value_get($data, 'angles', array()),
+    '#options' => _cloudinary_options_angles(),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="data[automatic_rotation]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+
+  $form['cloudinary']['look_feel'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Look & Feel'),
+  );
+
+  $form['cloudinary']['look_feel']['one'] = $container;
+
+  $form['cloudinary']['look_feel']['one']['effect'] = array(
+    '#type' => 'select',
+    '#parents' => array('data', 'effect'),
+    '#title' => t('Effect'),
+    '#default_value' => cloudinary_value_get($data, 'effect'),
+    '#options' => _cloudinary_options_effect(),
+  );
+
+  $form['cloudinary']['look_feel']['one']['effects_param'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'effects_param'),
+    '#title_display' => 'invisible',
+    '#title' => t('Effects Param'),
+    '#default_value' => cloudinary_value_get($data, 'effects_param'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider'), 'data' => 'fixed_0_100_slider-small'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="data[effect]"]' => _cloudinary_build_visible_states(CLOUDINARY_VISIBLE_STATES_EFFECT),
+      ),
+    ),
+  );
+
+  $form['cloudinary']['more'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('More Options'),
+  );
+
+  $form['cloudinary']['more']['one'] = array(
+    '#prefix' => '<div id="farbtastic-color"></div><div class="container-inline clearfix">',
+    '#suffix' => '</div>',
+  );
+
+  $form['cloudinary']['more']['one']['opacity'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'opacity'),
+    '#title' => t('Opacity'),
+    '#default_value' => cloudinary_value_get($data, 'opacity'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider'), 'data' => 'fixed_0_100_slider-small'),
+  );
+
+  $form['cloudinary']['more']['one']['border_width'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'border_width'),
+    '#title' => t('Border'),
+    '#default_value' => cloudinary_value_get($data, 'border_width'),
+    '#size' => 4,
+    '#attributes' => array('class' => array('input_slider'), 'data' => 'dynamic_0_100_slider-small'),
+  );
+
+  $form['cloudinary']['more']['one']['border_color'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'border_color'),
+    '#title' => t('Border color'),
+    '#title_display' => 'invisible',
+    '#default_value' => cloudinary_value_get($data, 'border_color'),
+    '#size' => 8,
+    '#maxlength' => 7,
+    '#attributes' => array('class' => array('input_color')),
+  );
+
+  $form['cloudinary']['more']['one']['background'] = array(
+    '#type' => 'textfield',
+    '#parents' => array('data', 'background'),
+    '#title' => t('Background'),
+    '#default_value' => cloudinary_value_get($data, 'background'),
+    '#size' => 8,
+    '#maxlength' => 7,
+    '#attributes' => array('class' => array('input_color')),
+  );
+
+  return $form;
+}
+
+/**
+ * Ajax callback for cloudinary image preview on effect edit form.
+ */
+function cloudinary_crop_form_preview_callback($form, $form_state) {
+  $data = cloudinary_from_image_effect_prepare($form_state['values']['data']);
+  $form['data']['cloudinary']['preview']['thumbnail']['#markup'] = cloudinary_crop_form_preview($data);
+
+  return $form['data']['cloudinary']['preview']['thumbnail'];
+}
+
+/**
+ * Generate cloudinary image preview for effect edit form.
+ */
+function cloudinary_crop_form_preview($data) {
+  $base = 'http://res.cloudinary.com/demo/image/upload/';
+  $filename = 'sample.jpg';
+
+  if (isset($data['gravity'])) {
+    switch ($data['gravity']) {
+      case 'face':
+      case 'face:center':
+      case 'rek_face':
+        $filename = 'bike.jpg';
+        break;
+
+      case 'faces':
+      case 'faces:center':
+      case 'rek_faces':
+        $filename = 'couple.jpg';
+        break;
+    }
+  }
+
+  if (isset($data['effect'])) {
+    switch ($data['effect']) {
+      case 'redeye':
+      case 'rek_redeye':
+        $filename = 'itaib_redeye_msjmif.jpg';
+        break;
+
+      case 'pixelate_faces':
+      case 'blur_faces':
+        $filename = 'couple.jpg';
+        break;
+    }
+  }
+
+  $original = $base . $filename;
+  $preview = $original;
+
+  $data = cloudinary_prepare_transformation($data);
+  $trans = \Cloudinary::generate_transformation_string($data);
+  if ($trans) {
+    $preview = $base . trim($trans, '/') . '/' . $filename;
+  }
+
+  $styles = array('original' => $original, 'preview' => $preview);
+  return theme('cloudinary_image_style_preview', $styles);
+}
+
+/**
+ * Prepare cloudinary transformation with attributes.
+ *
+ * Return multiple transformations if angle set.
+ */
+function cloudinary_prepare_transformation($data, $only = TRUE) {
+  $data = cloudinary_preprocess_transformation($data);
+  // Rotation Angle.
+  if (isset($data['angle']) || isset($data['angles'])) {
+    if (isset($data['crop']) && $data['crop'] != 'crop') {
+      unset($data['crop']);
+    }
+    if (isset($data['angle']) && count($data) > 1) {
+      $angle = $data['angle'];
+      unset($data['angle']);
+      if (isset($data['angles'])) {
+        $data['angle'] = array_values(array_filter($data['angles']));
+        unset($data['angles']);
+      }
+
+      $new_data = array($data);
+      $new_data[] = array('angle' => $angle);
+
+      if ($only !== TRUE) {
+        $new_data['multiple'] = TRUE;
+      }
+
+      return $new_data;
+    }
+  }
+
+  return $data;
+}
+
+/**
+ * Preprocess cloudinary transformation.
+ *
+ * Unset empty value fields.
+ *
+ * Merge field value to cloudinary format.
+ */
+function cloudinary_preprocess_transformation($data) {
+  $data = array_filter($data);
+  // Merge border with and border color.
+  if (isset($data['border_width'])) {
+    $border = $data['border_width'] . 'px_solid_rgb:';
+    if (isset($data['border_color'])) {
+      $border .= $data['border_color'];
+    }
+    else {
+      $border .= '000';
+    }
+    $data['border'] = $border;
+    // Unset unused attributes.
+    unset($data['border_width'], $data['border_color']);
+  }
+  // Meger effect with effects param.
+  if (isset($data['effect']) && isset($data['effects_param'])) {
+    $data['effect'] .= ':' . $data['effects_param'];
+  }
+
+  return $data;
+}
+
+/**
+ * Upload sample image to cloudinary if no exist.
+ *
+ * Replace image_style_preview_image to cloudinary sample image.
+ */
+function cloudinary_upload_sample() {
+  if (!file_exists(CLOUDINARY_SAMPLE)) {
+    if (file_save_data(file_get_contents(drupal_get_path('module', 'image') . '/sample.png'), CLOUDINARY_SAMPLE)) {
+      variable_set('image_style_preview_image', CLOUDINARY_SAMPLE);
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for image_style_form().
+ *
+ * Alters the image style form.
+ *
+ * @see image_style_form()
+ */
+function cloudinary_form_image_style_form_alter(&$form, &$from_state) {
+  // Prepare and upload sample image.
+  cloudinary_upload_sample();
+  // Remove cache flag.
+  $form['preview']['#markup'] = preg_replace('#\?(cache_bypass=)?\d{10}#', '', $form['preview']['#markup']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for image_effect_form().
+ *
+ * Alters the image style form.
+ *
+ * @see image_effect_form()
+ */
+function cloudinary_form_image_effect_form_alter(&$form, &$from_state) {
+  if (!isset($form['data']['cloudinary'])) {
+    return;
+  }
+
+  if (isset($form['#submit']) && !empty($form['#submit'])) {
+    array_unshift($form['#submit'], 'cloudinary_form_image_effect_submit');
+  }
+  else {
+    $form['#submit'] = array('cloudinary_form_image_effect_submit');
+  }
+}
+
+/**
+ * Prepare cloudinary image effect before save.
+ */
+function cloudinary_from_image_effect_prepare($data) {
+  // Unset border_color if border_width is empty.
+  if (empty($data['border_width'])) {
+    $data['border_color'] = '';
+  }
+  // Unset angles if automatic_rotation unchecked.
+  if (empty($data['automatic_rotation'])) {
+    $data['angles'] = array();
+  }
+  // Unset effects_param if effect doesn't have param.
+  $effect_param_effects = explode(',', CLOUDINARY_VISIBLE_STATES_EFFECT);
+
+  if (!in_array($data['effect'], $effect_param_effects)) {
+    $data['effects_param'] = '';
+  }
+  // Unset gravity if mode doesn't have.
+  $gravity_corp_modes = explode(',', CLOUDINARY_VISIBLE_STATES_CROP);
+
+  if (!in_array($data['crop'], $gravity_corp_modes)) {
+    $data['gravity'] = '';
+  }
+  // Unset x,y if crop mode isn't crop.
+  if ($data['crop'] != 'crop') {
+    $data['x'] = $data['y'] = '';
+  }
+
+  return $data;
+}
+
+/**
+ * Submit handler for adding a cloudinary effect to an image style.
+ */
+function cloudinary_form_image_effect_submit($form, &$form_state) {
+  $form_state['values']['data'] = cloudinary_from_image_effect_prepare($form_state['values']['data']);
+}
+
+/**
+ * Get value from array by key with default value.
+ */
+function cloudinary_value_get($data, $key, $default = '') {
+  return isset($data[$key]) ? $data[$key] : $default;
+}
+
+/**
+ * Build options for corp modes.
+ */
+function _cloudinary_options_crop($key = NULL) {
+  $data = array(
+    '' => t('None'),
+    'scale' => t('Scale'),
+    'limit' => t('Limit'),
+    'fill' => t('Fill'),
+    'fit' => t('Fit'),
+    'crop' => t('Crop'),
+    'thumb' => t('Thumb'),
+    'pad' => t('Pad'),
+    'lfill' => t('Limited Fill'),
+    'lpad' => t('Limit & Pad'),
+    'mfit' => t('Fit (Scale Up)'),
+    'mpad' => t('Pad (No Scale)'),
+    'imagga_crop' => t('Imagga crop'),
+    'imagga_scale' => t('Imagga scale'),
+  );
+
+  if (!is_null($key) && isset($data[$key])) {
+    return $data[$key];
+  }
+
+  return $data;
+}
+
+/**
+ * Build options for gravity.
+ */
+function _cloudinary_options_gravity($key = NULL) {
+  $data = array(
+    '' => t('None'),
+    'face' => t('Face'),
+    'faces' => t('Faces'),
+    'north_west' => t('North West'),
+    'north' => t('North'),
+    'north_east' => t('North East'),
+    'east' => t('East'),
+    'center' => t('Center'),
+    'west' => t('West'),
+    'south_west' => t('South West'),
+    'south' => t('South'),
+    'south_east' => t('South East'),
+    'face:center' => t('Face (Center)'),
+    'faces:center' => t('Faces (Center)'),
+    'custom' => t('Custom'),
+    'xy_center' => t('XY Center'),
+    'rek_face' => t('ReKognition: Face'),
+    'rek_faces' => t('ReKognition: Faces'),
+    'rek_eyes' => t('ReKognition: Eyes'),
+  );
+
+  if (!is_null($key) && isset($data[$key])) {
+    return $data[$key];
+  }
+
+  return $data;
+}
+
+/**
+ * Build options for angles.
+ */
+function _cloudinary_options_angles($key = NULL) {
+  $data = array(
+    'auto_left' => t('Auto left'),
+    'auto_right' => t('Auto right'),
+    'exif' => t('Use EXIF data'),
+    'hflip' => t('Horizontal flip'),
+    'ignore' => t('Ignore'),
+    'vflip' => t('Vertical flip'),
+  );
+
+  if (!is_null($key) && isset($data[$key])) {
+    return $data[$key];
+  }
+
+  return $data;
+}
+
+/**
+ * Build options for effect.
+ */
+function _cloudinary_options_effect($key = NULL) {
+  $data = array(
+    '' => t('None'),
+    'grayscale' => t('Grayscale'),
+    'blackwhite' => t('Blackwhite'),
+    'sepia' => t('Sepia'),
+    'brightness' => t('Brightness'),
+    'saturation' => t('Saturation'),
+    'hue' => t('Hue'),
+    'oil_paint' => t('Oil paint'),
+    'vignette' => t('Vignette'),
+    'pixelate' => t('Pixelate'),
+    'pixelate_faces' => t('Pixelate faces'),
+    'gradient_fade' => t('Gradient fade'),
+    'blur' => t('Blur'),
+    'improve' => t('Improve'),
+    'tilt_shift' => t('Tilt shift'),
+    'sharpen' => t('Sharpen'),
+    'unsharp_mask' => t('Unsharp mask'),
+    'pixelate_region' => t('Pixelate region'),
+    'red' => t('Red'),
+    'blue' => t('Blue'),
+    'green' => t('Green'),
+    'contrast' => t('Contrast'),
+    'vibrance' => t('Vibrance'),
+    'auto_color' => t('Auto color'),
+    'auto_brightness' => t('Auto brightness'),
+    'auto_contrast' => t('Auto contrast'),
+    'fill_light' => t('Fill light'),
+    'blur_region' => t('Blur region'),
+    'blur_faces' => t('Blur faces'),
+    'make_transparent' => t('Make transparent'),
+    'trim' => t('Trim'),
+    'mask' => t('Mask'),
+    'shadow' => t('Shadow'),
+    'negate' => t('Negate'),
+    'screen' => t('Screen'),
+    'multiply' => t('Multiply'),
+    'colorize' => t('Colorize'),
+    'redeye' => t('Remove red eyes'),
+    'rek_redeye' => t('ReKognition: Remove red eyes'),
+    'overlay' => t('Overlay'),
+    'gamma' => t('Gamma'),
+  );
+
+  if (!is_null($key) && isset($data[$key])) {
+    return $data[$key];
+  }
+
+  return $data;
+}
+
+/**
+ * Build group conditions of visible states.
+ */
+function _cloudinary_build_visible_states($visible) {
+  $data = array();
+  $datas = explode(',', $visible);
+  foreach ($datas as $value) {
+    $data[] = array('value' => $value);
+  }
+  return $data;
+}

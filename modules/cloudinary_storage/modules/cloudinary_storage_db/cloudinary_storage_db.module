@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * File for the cloudinary_storage_db module.
+ */
+
+/**
+ * Implements hook_cloudinary_storage_info().
+ */
+function cloudinary_storage_db_cloudinary_storage_info() {
+  return array(
+    'cloudinary_storage_db' => array(
+      'title' => t('Database'),
+      'class' => 'CloudinaryStorageDb',
+    ),
+  );
+}

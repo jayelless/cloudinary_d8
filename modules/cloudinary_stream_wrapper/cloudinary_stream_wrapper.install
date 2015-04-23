@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Provides installation functions.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function cloudinary_stream_wrapper_uninstall() {
+  // Remove unused variables.
+  variable_del('cloudinary_stream_wrapper_folders');
+}
