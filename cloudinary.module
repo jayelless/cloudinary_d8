@@ -576,12 +576,20 @@ function cloudinary_preprocess_transformation($data) {
   // Merge border with and border color.
   if (isset($data['border_width'])) {
     $border = $data['border_width'] . 'px_solid_rgb:';
+    $border_color = '000';
+    // Check and convert short #FFFFFF syntax to full #FFF syntax.
     if (isset($data['border_color'])) {
-      $border .= $data['border_color'];
+      $bc = $data['border_color'];
+      $len = strlen($bc);
+      if ($len == 7 || $len == 4) {
+        $border_color = substr($bc, 1);
+        if ($len == 7 && $bc[0] == $bc[1] && $bc[2] == $bc[3] && $bc[4] == $bc[5]) {
+          $border_color = $bc[0] . $bc[2] . $bc[4];
+        }
+      }
     }
-    else {
-      $border .= '000';
-    }
+    // Append border color to border.
+    $border .= $border_color;
     $data['border'] = $border;
     // Unset unused attributes.
     unset($data['border_width'], $data['border_color']);
