@@ -106,7 +106,8 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
       $path = implode('/', $paths);
       $ori_uri = $scheme . '://' . $path;
       $public_id = $this->getPublicId($ori_uri);
-      $resource = cloudinary_stream_wrapper_resource($public_id, array('resource_tye' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_IMAGE));
+      // Load cloudinary resource without static.
+      $resource = cloudinary_stream_wrapper_load_resource($public_id, array('resource_tye' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_IMAGE));
 
       if (!$resource || $resource['mode'] != CLOUDINARY_STREAM_WRAPPER_FILE) {
         return FALSE;
@@ -117,10 +118,6 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
       if (!empty($data)) {
         $trans = \Cloudinary::generate_transformation_string($data);
         $trans = '/upload/' . trim($trans, '/') . '/';
-        if (!isset($resource['url'])) {
-          file_put_contents('/tmp/test.txt', $uri, FILE_APPEND);
-          file_put_contents('/tmp/test.txt', print_r($resource, TRUE), FILE_APPEND);
-        }
         $resource['url'] = str_replace('/upload/', $trans, $resource['url']);
         $resource['secure_url'] = str_replace('/upload/', $trans, $resource['secure_url']);
 
