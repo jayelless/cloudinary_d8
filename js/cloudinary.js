@@ -29,11 +29,9 @@
       .appendTo('#farbtastic-color')
       .hide()
       .once('farbtastic');
-    var farb = $.farbtastic($picker),
-      input_color = '.input_color',
-      input_slider = '.input_slider';
+    var farb = $.farbtastic($picker);
     // Bind input as color picker.
-    $(input_color, context).once(input_color, function() {
+    $('.input_color', context).once('input_color', function() {
       var $ic = $(this);
       farb_change_color($ic, $ic.val());
       $ic.focus(function() {
@@ -52,7 +50,7 @@
       });
     });
     // Bind textfield as jquery ui slider.
-    $(input_slider, context).once(input_slider, function() {
+    $('.input_slider', context).once('input_slider', function() {
       var $select = $(this),
         min = 0,
         max = 200,
@@ -103,11 +101,11 @@
       $(this).parents('form').map(function() {
         this.reset();
         var $input = $(this).find(':input');
-        $input.not(input_slider).change();
-        $input.filter(input_color).map(function() {
+        $input.not('.input_slider').change();
+        $input.filter('.input_color').map(function() {
           farb_change_color($(this), $(this).val());
         });
-        $input.filter(input_slider).map(function() {
+        $input.filter('.input_slider').map(function() {
           var cv = $(this).val();
           $(this).change().val(cv);
         });
