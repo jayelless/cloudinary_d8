@@ -233,8 +233,8 @@ function cloudinary_stream_wrapper_load_resource($public_id, $options = array())
   if ($resource = cloudinary_stream_wrapper_resource_prepare($public_id)) {
     return $resource;
   }
-
-  if (empty($options)) {
+  // Load folder first if public_id or options is empty.
+  if (empty($public_id) || empty($options)) {
     // Return directory resource if public_id is a directory on Cloudinary.
     if ($resource = cloudinary_stream_wrapper_load_folder($public_id)) {
       return $resource;
