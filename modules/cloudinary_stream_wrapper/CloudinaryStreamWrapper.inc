@@ -90,14 +90,25 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   /**
+   * Check uri is an image style.
+   */
+  protected function imageStylePaths($uri) {
+    $paths = explode('/', $this->getTarget($uri));
+    $target = array_shift($paths);
+    if ($target == 'styles') {
+      return $paths;
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Load file or directory resource for Cloudinary.
    */
   protected function loadResource($uri, $reset = FALSE) {
     // Process image style.
-    $paths = explode('/', $this->getTarget($uri));
-    $target = array_shift($paths);
-
-    if ($target == 'styles') {
+    $paths = $this->imageStylePaths($uri);
+    if (!empty($paths)) {
       $style_name = array_shift($paths);
       $scheme = array_shift($paths);
       if (empty($scheme)) {
@@ -106,8 +117,7 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
       $path = implode('/', $paths);
       $ori_uri = $scheme . '://' . $path;
       $public_id = $this->getPublicId($ori_uri);
-      // Load cloudinary resource without static.
-      $resource = cloudinary_stream_wrapper_load_resource($public_id, array('resource_tye' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_IMAGE));
+      $resource = cloudinary_stream_wrapper_resource($public_id, array('resource_tye' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_IMAGE));
 
       if (!$resource || $resource['mode'] != CLOUDINARY_STREAM_WRAPPER_FILE) {
         return FALSE;
@@ -576,6 +586,12 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/streamwrapper.unlink.php
    */
   public function unlink($uri) {
+    // If uri is an image style then ignore it.
+    $paths = $this->imageStylePaths($uri);
+    if ($paths !== FALSE) {
+      return TRUE;
+    }
+
     $resource = $this->loadResource($uri);
 
     if ($resource) {
