@@ -184,7 +184,9 @@ function cloudinary_stream_wrapper_load_folder_files($tag, $options = array()) {
     }
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage();
+    watchdog('cloudinary_stream_wrapper', 'Failed to load files of folder [%folder], [%message]', array(
+      '%folder' => $tag,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   if (!empty($resources)) {
@@ -332,7 +334,9 @@ function cloudinary_stream_wrapper_create_file($base64_data, $options) {
     return TRUE;
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage()
+    watchdog('cloudinary_stream_wrapper', 'Upload file [%file] into Cloudinary failed, [%message].', array(
+      '%file' => $options['public_id'],
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return FALSE;
@@ -349,7 +353,9 @@ function cloudinary_stream_wrapper_delete_file($resource) {
     return TRUE;
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage().
+    watchdog('cloudinary_stream_wrapper', 'Failed to delete file [%file], [%message].', array(
+      '%file' => $resource['public_id'],
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return FALSE;
@@ -369,7 +375,9 @@ function cloudinary_stream_wrapper_load_file($public_id, $options = array()) {
     module_invoke_all('cloudinary_stream_wrapper_resource_loaded', $resource);
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage()
+    watchdog('cloudinary_stream_wrapper', 'Failed to load file [%file], [%message].', array(
+      '%file' => $public_id,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return $resource;
@@ -396,7 +404,10 @@ function cloudinary_stream_wrapper_rename_file($src_resource, $dst_public_id) {
     return TRUE;
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage()
+    watchdog('cloudinary_stream_wrapper', 'Rename file [%file] to new file [%newfile] failed, [%message].', array(
+      '%file' => $src_resource['public_id'],
+      '%newfile' => $dst_public_id,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return FALSE;
@@ -416,7 +427,9 @@ function cloudinary_stream_wrapper_create_folder($path) {
     return TRUE;
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage()
+    watchdog('cloudinary_stream_wrapper', 'Failed to create folder [%folder], [%message].', array(
+      '%folder' => $path,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return FALSE;
@@ -439,7 +452,9 @@ function cloudinary_stream_wrapper_delete_folder($resource) {
     return TRUE;
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage()
+    watchdog('cloudinary_stream_wrapper', 'Delete folder [%folder] failed, [%message].', array(
+      '%folder' => $resource['public_id'],
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return FALSE;
@@ -496,7 +511,9 @@ function cloudinary_stream_wrapper_get_folders($path = '', $options = array()) {
     }
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage();
+    watchdog('cloudinary_stream_wrapper', 'Failed to get sub-folders under folder [%folder], [%message].', array(
+      '%folder' => $path,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return $folders;
@@ -629,7 +646,9 @@ function cloudinary_stream_wrapper_remote_image_info($url, $filesize = FALSE) {
     fclose($handle);
   }
   catch (Exception $e) {
-    // Watchdog $e->getMessage();
+    watchdog('cloudinary_stream_wrapper', 'Failed to get remote image info [%url], [%message].', array(
+      '%url' => $url,
+      '%message' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
   return $result;
