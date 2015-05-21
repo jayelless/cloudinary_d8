@@ -30,6 +30,6 @@ function hook_cloudinary_storage_info() {
  *   hook_cloudinary_storage_info().
  */
 function hook_cloudinary_storage_info_alter(array &$storages) {
-  $effects['cloudinary_storage_name']['title'] = t('Custom Name');
-  $effects['cloudinary_storage_name']['class'] = 'CloudinaryStorageCustomName';
+  $storages['cloudinary_storage_name']['title'] = t('Custom Name');
+  $storages['cloudinary_storage_name']['class'] = 'CloudinaryStorageCustomName';
 }
