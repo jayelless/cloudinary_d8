@@ -11,6 +11,11 @@
 define('CLOUDINARY_SAMPLE', 'cloudinary://drupal_sample.png');
 
 /**
+ * Url prefix of cloudinary preview image.
+ */
+define('CLOUDINARY_PREVIEW_IMAGE_PREFIX', 'http://res.cloudinary.com/demo/image/upload/');
+
+/**
  * Effects for effects param visible states.
  */
 define('CLOUDINARY_VISIBLE_STATES_EFFECT', 'sepia,brightness,saturation,hue,oil_paint,vignette,pixelate,pixelate_faces,gradient_fade,blur,tilt_shift,sharpen,unsharp_mask,pixelate_region,red,blue,green,contrast,vibrance,fill_light,blur_region,blur_faces,make_transparent,trim,shadow,colorize');
@@ -484,7 +489,6 @@ function cloudinary_crop_form_preview_callback($form, $form_state) {
  * Generate cloudinary image preview for effect edit form.
  */
 function cloudinary_crop_form_preview($data) {
-  $base = 'http://res.cloudinary.com/demo/image/upload/';
   $filename = 'sample.jpg';
 
   if (isset($data['gravity'])) {
@@ -517,13 +521,13 @@ function cloudinary_crop_form_preview($data) {
     }
   }
 
-  $original = $base . $filename;
+  $original = CLOUDINARY_PREVIEW_IMAGE_PREFIX . $filename;
   $preview = $original;
 
   $data = cloudinary_prepare_transformation($data);
   $trans = \Cloudinary::generate_transformation_string($data);
   if ($trans) {
-    $preview = $base . trim($trans, '/') . '/' . $filename;
+    $preview = CLOUDINARY_PREVIEW_IMAGE_PREFIX . trim($trans, '/') . '/' . $filename;
   }
 
   $styles = array('original' => $original, 'preview' => $preview);
