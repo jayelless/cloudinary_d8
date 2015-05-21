@@ -4,4 +4,3 @@ package = Cloudinary
 core = 7.x
 dependencies[] = cloudinary_storage
 files[] = CloudinaryStorageFile.inc
-files[] = cloudinary_storage_file.test

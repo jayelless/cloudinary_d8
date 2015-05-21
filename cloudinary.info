@@ -3,4 +3,3 @@ description = The module provides image transformation of Cloudinay, auto conver
 package = Cloudinary
 core = 7.x
 dependencies[] = cloudinary_stream_wrapper
-files[] = cloudinary.test

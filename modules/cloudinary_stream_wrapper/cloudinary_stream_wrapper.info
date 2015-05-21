@@ -3,6 +3,5 @@ description = The module provides stream wrappers to access Cloudinary files wit
 package = Cloudinary
 core = 7.x
 dependencies[] = cloudinary_sdk
-files[] = cloudinary_stream_wrapper.test
 files[] = CloudinaryStreamWrapper.inc
 configure = admin/config/media/cloudinary

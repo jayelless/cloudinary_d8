@@ -4,5 +4,4 @@ package = Cloudinary
 core = 7.x
 dependencies[] = cloudinary_stream_wrapper
 files[] = CloudinaryStorage.inc
-files[] = cloudinary_storage.test
 configure = admin/config/media/cloudinary
