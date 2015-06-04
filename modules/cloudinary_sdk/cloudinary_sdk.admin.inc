@@ -16,14 +16,26 @@
 function cloudinary_sdk_settings($form, &$form_state) {
   // Make sure Cloudinary SDK installed.
   // If not, display messages and disable API settings.
-  $status = cloudinary_sdk_check();
+  list($status, $version, $error_message) = cloudinary_sdk_check(TRUE);
   $disabled = ($status != CLOUDINARY_SDK_LOADED);
 
   if ($status == CLOUDINARY_SDK_NOT_LOADED) {
     drupal_set_message(t('Please make sure the Cloudinary SDK library is installed in the libraries directory.'), 'error');
+    if ($error_message) {
+      drupal_set_message($error_message, 'error');
+    }
   }
   elseif ($status == CLOUDINARY_SDK_OLD_VERSION) {
-    drupal_set_message(t('Please make sure the Cloudinary SDK library installed is @version or greater.', array('@version' => CLOUDINARY_SDK_MINIMUM_VERSION)), 'warning');
+    drupal_set_message(
+      t(
+        'Please make sure the Cloudinary SDK library installed is @version or greater. Current version is @current_version.',
+        array(
+          '@version' => CLOUDINARY_SDK_MINIMUM_VERSION,
+          '@current_version' => $version,
+        )
+      ),
+      'warning'
+    );
   }
 
   // Build API settings form.

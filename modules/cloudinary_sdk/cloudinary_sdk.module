@@ -38,7 +38,7 @@ function cloudinary_sdk_libraries_info() {
       'version arguments' => array(
         'file' => 'src/Cloudinary.php',
         'pattern' => '/const VERSION = "(.*)";/',
-        'lines' => 10,
+        'lines' => 13,
       ),
       'files' => array(
         'php' => array(
@@ -116,11 +116,13 @@ function cloudinary_sdk_config_load() {
 function cloudinary_sdk_check($ver = FALSE) {
   $info = libraries_load('cloudinary');
   $status = $version = '';
+  $error_message = '';
 
   if (!$info['loaded']) {
     $status = CLOUDINARY_SDK_NOT_LOADED;
+    $error_message = ($info['error message']) ? $info['error message'] : '';
   }
-  elseif (!$info['version'] || version_compare($info['version'], CLOUDINARY_SDK_MINIMUM_VERSION) < 0) {
+  elseif ($info['version'] && version_compare($info['version'], CLOUDINARY_SDK_MINIMUM_VERSION) < 0) {
     $status = CLOUDINARY_SDK_OLD_VERSION;
     $version = $info['version'];
   }
@@ -129,7 +131,7 @@ function cloudinary_sdk_check($ver = FALSE) {
     $version = $info['version'];
   }
 
-  return $ver ? array($status, $version) : $status;
+  return $ver ? array($status, $version, $error_message) : $status;
 }
 
 /**
