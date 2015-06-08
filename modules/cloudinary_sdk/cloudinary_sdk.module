@@ -31,7 +31,7 @@ define('CLOUDINARY_SDK_LOADED', 2);
 function cloudinary_sdk_libraries_info() {
   return array(
     'cloudinary' => array(
-      'title' => 'Cloudinary SDK for PHP',
+      'name' => 'Cloudinary SDK for PHP',
       'vendor url' => 'http://cloudinary.com/',
       'download url' => 'https://github.com/cloudinary/cloudinary_php',
       'path' => 'src',
