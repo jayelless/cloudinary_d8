@@ -614,6 +614,7 @@ function cloudinary_stream_wrapper_remote_image_info($url, $filesize = FALSE) {
 
   $result = array();
   $data_block = '';
+  $headers = array();
 
   try {
     $handle = fopen($url, 'rb');
@@ -623,7 +624,13 @@ function cloudinary_stream_wrapper_remote_image_info($url, $filesize = FALSE) {
     // Get filesize form headers.
     if ($filesize) {
       $meta = stream_get_meta_data($handle);
-      $headers = isset($meta['wrapper_data']['headers']) ? $meta['wrapper_data']['headers'] : $meta['wrapper_data'];
+      if (is_array($meta['wrapper_data'])) {
+        $headers = isset($meta['wrapper_data']['headers']) ? $meta['wrapper_data']['headers'] : $meta['wrapper_data'];
+      }
+      elseif (is_object($meta['wrapper_data']) && isset($meta['wrapper_data']->stream_headers)) {
+        $headers = $meta['wrapper_data']->stream_headers;
+      }
+
       foreach ($headers as $h) {
         if (preg_match('/length/iU', $h)) {
           $size = explode(':', $h);
