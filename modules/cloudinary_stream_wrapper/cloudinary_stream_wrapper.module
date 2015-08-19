@@ -327,6 +327,8 @@ function cloudinary_stream_wrapper_resource_folder_structure($path, $folders = a
  */
 function cloudinary_stream_wrapper_create_file($base64_data, $options) {
   try {
+    // Allow change of the options in the very last moment before upload.
+    drupal_alter('cloudinary_stream_wrapper_options', $options);
     $data = (array) \Cloudinary\Uploader::upload($base64_data, $options);
     $resource = cloudinary_stream_wrapper_resource_file_structure($data);
     module_invoke_all('cloudinary_stream_wrapper_resource_create', $resource);

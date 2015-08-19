@@ -162,3 +162,14 @@ function hook_cloudinary_stream_wrapper_transformation_alter(array &$effects) {
   $effects['image_crop']['title'] = t('Custom Crop');
   $effects['image_crop']['callback'] = 'cloudinary_transformation_image_crop_custom';
 }
+
+/**
+ * Alter change of the options in the very last moment before upload.
+ *
+ * @param array $options
+ *   Cloudinary stream upload options.
+ */
+function hook_cloudinary_stream_wrapper_options_alter(array &$options) {
+  $options['folder'] = 'folder';
+  $options['callback'] = 'callback';
+}
