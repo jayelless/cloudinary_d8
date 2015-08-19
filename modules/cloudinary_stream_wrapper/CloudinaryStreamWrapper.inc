@@ -131,10 +131,13 @@ class CloudinaryStreamWrapper implements DrupalStreamWrapperInterface {
         $resource['url'] = str_replace('/upload/', $trans, $resource['url']);
         $resource['secure_url'] = str_replace('/upload/', $trans, $resource['secure_url']);
 
-        $extra = cloudinary_stream_wrapper_remote_image_info($resource['url'], TRUE);
-        if (!empty($extra) && is_array($extra)) {
-          $resource = array_merge($resource, $extra);
-        }
+        // Calculate image width and height with Drupal Image style API.
+        $dimensions = array(
+          'width' => $resource['width'],
+          'height' => $resource['height'],
+        );
+        image_style_transform_dimensions($style_name, $dimensions);
+        $resource = array_merge($resource, $dimensions);
       }
 
       $this->resource = $resource;
