@@ -1,7 +1,0 @@
-name = Cloudinary Storage
-description = The module provides stores information locally to reduce network requests and improve loading speed for uploaded Cloudinary files.
-package = Cloudinary
-core = 7.x
-dependencies[] = cloudinary_stream_wrapper
-files[] = CloudinaryStorage.inc
-configure = admin/config/media/cloudinary

@@ -1,7 +1,0 @@
-name = Cloudinary Stream Wrapper
-description = The module provides stream wrappers to access Cloudinary files with read or write method.
-package = Cloudinary
-core = 7.x
-dependencies[] = cloudinary_sdk
-files[] = CloudinaryStreamWrapper.inc
-configure = admin/config/media/cloudinary

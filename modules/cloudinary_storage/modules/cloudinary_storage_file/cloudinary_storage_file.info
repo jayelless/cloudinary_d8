@@ -1,6 +1,0 @@
-name = Cloudinary Storage File
-description = The module provides stores information in local file system for uploaded Cloudinary files.
-package = Cloudinary
-core = 7.x
-dependencies[] = cloudinary_storage
-files[] = CloudinaryStorageFile.inc
