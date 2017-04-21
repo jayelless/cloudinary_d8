@@ -10,5 +10,7 @@
  */
 function cloudinary_stream_wrapper_uninstall() {
   // Remove unused variables.
-  variable_del('cloudinary_stream_wrapper_folders');
+  $config = \Drupal::service('config.factory')->getEditable('cloudinary.settings');
+  $config->clear('cloudinary_stream_wrapper_folders');
+  $config->save();
 }

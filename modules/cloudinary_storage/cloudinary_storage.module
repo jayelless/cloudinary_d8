@@ -1,4 +1,5 @@
 <?php
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * @file
@@ -22,10 +23,10 @@ function cloudinary_storage_info() {
   $storages = &drupal_static(__FUNCTION__);
 
   if (!isset($storages)) {
-    $storages = module_invoke_all('cloudinary_storage_info');
+    $storages = \Drupal::moduleHandler()->invokeAll('cloudinary_storage_info');
 
     // Support alter, so that other modules can modify exist settings.
-    drupal_alter('cloudinary_storage_info', $storages);
+    \Drupal::moduleHandler()->alter('cloudinary_storage_info', $storages);
 
     foreach ($storages as $key => $process) {
       if (!isset($process['class']) || !class_exists($process['class'])) {
@@ -42,7 +43,7 @@ function cloudinary_storage_info() {
  */
 function cloudinary_storage_class() {
   $storages = cloudinary_storage_info();
-  $storage = variable_get('cloudinary_storage_default', '');
+  $storage = \Drupal::config('cloudinary_storage.settings')->get('cloudinary_storage_default');
 
   if (empty($storages) || empty($storage)) {
     return FALSE;
@@ -184,7 +185,7 @@ function cloudinary_storage_form_cloudinary_sdk_settings_alter(&$form, $form_sta
     '#type' => 'radios',
     '#title' => t('Storage for uploaded cloudinary files'),
     '#options' => $options,
-    '#default_value' => variable_get('cloudinary_storage_default', ''),
+    '#default_value' => \Drupal::config('cloudinary_storage.settings')->get('cloudinary_storage_default'),
   );
 
   // Unshfit exist storage clear checking.
@@ -195,11 +196,19 @@ function cloudinary_storage_form_cloudinary_sdk_settings_alter(&$form, $form_sta
  * Submit for the cloudinary_sdk_settings() form.
  */
 function cloudinary_storage_settings_submit($form, &$form_state) {
-  $c_storage = variable_get('cloudinary_storage_default', '');
-  $storage = $form_state['values']['cloudinary_storage_default'];
+  $c_storage = \Drupal::config('cloudinary_storage.settings')->get('cloudinary_storage_default');
+  $storage = $form_state->getValue(['cloudinary_storage_default']);
 
-  $c_cloud_name = variable_get('cloudinary_sdk_cloud_name', '');
-  $cloud_name = $form_state['values']['cloudinary_sdk_cloud_name'];
+  $c_cloud_name = \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_cloud_name');
+  $cloud_name = $form_state->getValue(['cloudinary_sdk_cloud_name']);
+
+  $sdk_config = \Drupal::service('config.factory')->getEditable('cloudinary_storage.settings');
+  $sdk_config->set('cloudinary_storage_default', $storage);
+  $sdk_config->save();
+
+  $sdk_config = \Drupal::service('config.factory')->getEditable('cloudinary_sdk.settings');
+  $sdk_config->set('cloudinary_sdk_cloud_name', $cloud_name);
+  $sdk_config->save();
 
   // Clear storage if storage method or cloud name changed.
   $clear = ($c_storage && $c_storage != $storage) || ($c_cloud_name && $c_cloud_name != $cloud_name);

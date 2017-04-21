@@ -16,8 +16,8 @@
 function cloudinary_sdk_settings($form, &$form_state) {
   // Make sure Cloudinary SDK installed.
   // If not, display messages and disable API settings.
-  list($status, $version, $error_message) = cloudinary_sdk_check(TRUE);
-  $disabled = ($status != CLOUDINARY_SDK_LOADED);
+  //list($status, $version, $error_message) = cloudinary_sdk_check(TRUE);
+  $disabled = false; /*($status != CLOUDINARY_SDK_LOADED);
 
   if ($status == CLOUDINARY_SDK_NOT_LOADED) {
     drupal_set_message(t('Please make sure the Cloudinary SDK library is installed in the libraries directory.'), 'error');
@@ -36,7 +36,7 @@ function cloudinary_sdk_settings($form, &$form_state) {
       ),
       'warning'
     );
-  }
+  }*/
 
   // Build API settings form.
   $form = array();
@@ -53,7 +53,7 @@ function cloudinary_sdk_settings($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Cloud name'),
     '#required' => TRUE,
-    '#default_value' => variable_get('cloudinary_sdk_cloud_name', ''),
+    '#default_value' => \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_cloud_name'),
     '#description' => t('Cloud name of Cloudinary.'),
     '#disabled' => $disabled,
   );
@@ -62,7 +62,7 @@ function cloudinary_sdk_settings($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('API key'),
     '#required' => TRUE,
-    '#default_value' => variable_get('cloudinary_sdk_api_key', ''),
+    '#default_value' => \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_key'),
     '#description' => t('API key of Cloudinary.'),
     '#disabled' => $disabled,
   );
@@ -71,7 +71,7 @@ function cloudinary_sdk_settings($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('API secret'),
     '#required' => TRUE,
-    '#default_value' => variable_get('cloudinary_sdk_api_secret', ''),
+    '#default_value' => \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_secret'),
     '#description' => t('API secret of Cloudinary.'),
     '#disabled' => $disabled,
   );
@@ -92,9 +92,9 @@ function cloudinary_sdk_settings_validate($form, &$form_state) {
   // Validate the API settings with ping.
   if ($cloud_name && $api_key && $api_secret) {
     $key = $cloud_name . $api_key . $api_secret;
-    $old_key = variable_get('cloudinary_sdk_cloud_name', '');
-    $old_key .= variable_get('cloudinary_sdk_api_key', '');
-    $old_key .= variable_get('cloudinary_sdk_api_secret', '');
+    $old_key = \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_cloud_name');
+    $old_key .= \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_key');
+    $old_key .= \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_secret');
 
     // Return if no changes.
     if ($key == $old_key) {

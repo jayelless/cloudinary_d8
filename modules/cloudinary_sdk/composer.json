@@ -1,0 +1,15 @@
+{
+  "name":"drupal/cloudinary_sdk",
+  "type":"drupal-module",
+  "description":"Cloudinary integration.",
+  "authors": [
+    {
+      "name":"Sean Robertson",
+      "email":"sean.robertson@door3.com",
+      "homepage":"http://www.door3.com"
+    }
+  ],
+  "require-dev": {
+    "cloudinary/cloudinary_php": "dev-master"
+  }
+}

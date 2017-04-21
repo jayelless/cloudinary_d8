@@ -10,16 +10,16 @@
  */
 function cloudinary_sdk_uninstall() {
   // Remove unused variables.
-  variable_del('cloudinary_sdk_cloud_name');
-  variable_del('cloudinary_sdk_api_key');
-  variable_del('cloudinary_sdk_api_secret');
+  \Drupal::config('cloudinary_sdk.settings')->clear('cloudinary_sdk_cloud_name')->save();
+  \Drupal::config('cloudinary_sdk.settings')->clear('cloudinary_sdk_api_key')->save();
+  \Drupal::config('cloudinary_sdk.settings')->clear('cloudinary_sdk_api_secret')->save();
 }
 
 /**
  * Implements hook_requirements().
  */
 function cloudinary_sdk_requirements($phase) {
-  $t = get_t();
+  $t = 't';
   $requirements = array();
 
   // None of these requirements are relevant outside of runtime.
@@ -60,7 +60,10 @@ function cloudinary_sdk_requirements($phase) {
       $r['severity'] = REQUIREMENT_WARNING;
       $r['description'] = $t("The required cloud name, API key and API secret of Cloudinary hasn't been set.");
       // Add link to configuration form.
-      $r['description'] .= l($t('Configure'), 'admin/config/media/cloudinary', array('attributes' => array('class' => array('module-link', 'module-link-configure'))));
+      // @FIXME
+// l() expects a Url object, created from a route name or external URI.
+// $r['description'] .= l($t('Configure'), 'admin/config/media/cloudinary', array('attributes' => array('class' => array('module-link', 'module-link-configure'))));
+
     }
   }
 

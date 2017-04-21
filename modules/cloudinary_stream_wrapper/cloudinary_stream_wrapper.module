@@ -4,6 +4,7 @@
  * @file
  * File for the Cloudinary Stream Wrapper module.
  */
+use Drupal\image\Entity\ImageStyle;
 
 /**
  * Flag for dealing with Cloudinary file.
@@ -95,7 +96,11 @@ function cloudinary_stream_wrapper_stream_wrappers() {
   $wrappers = array();
   $wrappers['cloudinary'] = $base;
 
-  $folders = array_filter(variable_get('cloudinary_stream_wrapper_folders', array()));
+  // @FIXME
+  // Could not extract the default value because it is either indeterminate, or
+  // not scalar. You'll need to provide a default value in
+  // config/install/cloudinary_sdk.settings.yml and config/schema/cloudinary_stream_wrapper.schema.yml.
+  $folders = array_filter(\Drupal::config('cloudinary_sdk.settings')->get('cloudinary_stream_wrapper_folders'));
   if (!empty($folders)) {
     foreach ($folders as $folder) {
       $wrappers['cloudinary.' . $folder] = $base;
@@ -120,12 +125,19 @@ function cloudinary_stream_wrapper_form_cloudinary_sdk_settings_alter(&$form, $f
     return;
   }
 
+  $form['settings']['cloudinary_stream_wrapper_enable_api_folder_creation'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable folder API creation.'),
+    '#default_value' => \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_stream_wrapper_enable_api_folder_creation', FALSE),
+    '#description' => t('Enabling of "Auto-create folders" on cloudinary account is highly recommended. In case "Auto-create folders" is disabled - use this checkbox, but note: this option will increase file upload time.'),
+  );
+
   $root_folders = cloudinary_stream_wrapper_load_resource('');
 
   if (!empty($root_folders['folders'])) {
     $folders = array();
     foreach ($root_folders['folders'] as $folder) {
-      $folders[$folder] = 'Folder: /' . $folder . ' [cloudinary.' . $folder . '://]';
+      $folders[str_replace('.', '_', $folder)] = 'Folder: /' . $folder . ' [cloudinary.' . $folder . '://]';
     }
 
     $form['folders'] = array(
@@ -136,11 +148,15 @@ function cloudinary_stream_wrapper_form_cloudinary_sdk_settings_alter(&$form, $f
       '#description' => t('You can enable more stream wrappers for Cloudinary with root folders.'),
     );
 
+    // @FIXME
+    // Could not extract the default value because it is either indeterminate, or
+    // not scalar. You'll need to provide a default value in
+    // config/install/cloudinary_sdk.settings.yml and config/schema/cloudinary_stream_wrapper.schema.yml.
     $form['folders']['cloudinary_stream_wrapper_folders'] = array(
       '#type' => 'checkboxes',
-      '#title' => t('Cloudinary shceme with root folder'),
+      '#title' => t('Cloudinary scheme with root folder'),
       '#options' => $folders,
-      '#default_value' => variable_get('cloudinary_stream_wrapper_folders', array()),
+      '#default_value' => \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_stream_wrapper_folders'),
     );
   }
 }
@@ -184,9 +200,9 @@ function cloudinary_stream_wrapper_load_folder_files($tag, $options = array()) {
     }
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to load files of folder [%folder], [%message]', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to load files of folder [%folder], [%message]', array(
       '%folder' => $tag,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   if (!empty($resources)) {
@@ -218,7 +234,7 @@ function cloudinary_stream_wrapper_load_folder_files($tag, $options = array()) {
  */
 function cloudinary_stream_wrapper_resource_prepare($public_id) {
   $data = array('public_id' => $public_id);
-  $resource = module_invoke_all('cloudinary_stream_wrapper_resource_prepare', $data);
+  $resource = \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_prepare', [$data]);
 
   if ($data != $resource) {
     return $resource;
@@ -247,6 +263,9 @@ function cloudinary_stream_wrapper_load_resource($public_id, $options = array())
     }
   }
   else {
+    if(cloudinary_stream_wrapper_resource_prepare($public_id) == FALSE){
+      return FALSE;
+    }
     // Return file resource on Cloudinary.
     if ($resource = cloudinary_stream_wrapper_load_file($public_id, $options)) {
       return $resource;
@@ -327,18 +346,21 @@ function cloudinary_stream_wrapper_resource_folder_structure($path, $folders = a
  */
 function cloudinary_stream_wrapper_create_file($base64_data, $options) {
   try {
+    $options['api_key'] = \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_key');
+    $options['api_secret'] = \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_api_secret');
+    $options['cloud_name'] = \Drupal::config('cloudinary_sdk.settings')->get('cloudinary_sdk_cloud_name');
     // Allow change of the options in the very last moment before upload.
-    drupal_alter('cloudinary_stream_wrapper_options', $options);
+    \Drupal::moduleHandler()->alter('cloudinary_stream_wrapper_options', $options);
     $data = (array) \Cloudinary\Uploader::upload($base64_data, $options);
     $resource = cloudinary_stream_wrapper_resource_file_structure($data);
-    module_invoke_all('cloudinary_stream_wrapper_resource_create', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_create', [$resource]);
 
     return TRUE;
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Upload file [%file] into Cloudinary failed, [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Upload file [%file] into Cloudinary failed, [%message].', array(
       '%file' => $options['public_id'],
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return FALSE;
@@ -350,14 +372,14 @@ function cloudinary_stream_wrapper_create_file($base64_data, $options) {
 function cloudinary_stream_wrapper_delete_file($resource) {
   try {
     \Cloudinary\Uploader::destroy($resource['public_id']);
-    module_invoke_all('cloudinary_stream_wrapper_resource_delete', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_delete', [$resource]);
 
     return TRUE;
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to delete file [%file], [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to delete file [%file], [%message].', array(
       '%file' => $resource['public_id'],
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return FALSE;
@@ -374,12 +396,12 @@ function cloudinary_stream_wrapper_load_file($public_id, $options = array()) {
     $api = new \Cloudinary\Api();
     $data = (array) $api->resource($public_id, $options);
     $resource = cloudinary_stream_wrapper_resource_file_structure($data);
-    module_invoke_all('cloudinary_stream_wrapper_resource_loaded', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_loaded', [$resource]);
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to load file [%file], [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to load file [%file], [%message].', array(
       '%file' => $public_id,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return $resource;
@@ -401,15 +423,15 @@ function cloudinary_stream_wrapper_rename_file($src_resource, $dst_public_id) {
     }
     // Load new file resource.
     $dst_resource = cloudinary_stream_wrapper_load_file($data['public_id'], array('resource_type' => $data['resource_type']));
-    module_invoke_all('cloudinary_stream_wrapper_resource_rename', $src_resource, $dst_resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_rename', [$src_resource, $dst_resource]);
 
     return TRUE;
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Rename file [%file] to new file [%newfile] failed, [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Rename file [%file] to new file [%newfile] failed, [%message].', array(
       '%file' => $src_resource['public_id'],
       '%newfile' => $dst_public_id,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return FALSE;
@@ -424,14 +446,14 @@ function cloudinary_stream_wrapper_create_folder($path) {
     \Cloudinary\Uploader::rename('sample', $temp_public_id);
     \Cloudinary\Uploader::destroy($temp_public_id);
     $resource = cloudinary_stream_wrapper_resource_folder_structure($path);
-    module_invoke_all('cloudinary_stream_wrapper_resource_create', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_create', [$resource]);
 
     return TRUE;
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to create folder [%folder], [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to create folder [%folder], [%message].', array(
       '%folder' => $path,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return FALSE;
@@ -449,14 +471,14 @@ function cloudinary_stream_wrapper_delete_folder($resource) {
     $api = new \Cloudinary\Api();
     $api->delete_resources_by_prefix($resource['public_id'], array('resource_type' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_IMAGE));
     $api->delete_resources_by_prefix($resource['public_id'], array('resource_type' => CLOUDINARY_STREAM_WRAPPER_RESOURCE_RAW));
-    module_invoke_all('cloudinary_stream_wrapper_resource_delete', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_delete', [$resource]);
 
     return TRUE;
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Delete folder [%folder] failed, [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Delete folder [%folder] failed, [%message].', array(
       '%folder' => $resource['public_id'],
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return FALSE;
@@ -481,7 +503,7 @@ function cloudinary_stream_wrapper_load_folder($path) {
     $files = array_merge($image_files, $raw_files);
 
     $resource = cloudinary_stream_wrapper_resource_folder_structure($path, $folders, $files);
-    module_invoke_all('cloudinary_stream_wrapper_resource_loaded', $resource);
+    \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_resource_loaded', [$resource]);
 
     return $resource;
   }
@@ -513,9 +535,9 @@ function cloudinary_stream_wrapper_get_folders($path = '', $options = array()) {
     }
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to get sub-folders under folder [%folder], [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to get sub-folders under folder [%folder], [%message].', array(
       '%folder' => $path,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return $folders;
@@ -534,21 +556,24 @@ function cloudinary_stream_wrapper_transformation($style_name, $resource) {
       return FALSE;
     }
 
-    $style_definition = image_style_load($style_name);
+    $style_definition = ImageStyle::load($style_name);
 
-    if (!isset($style_definition['effects']) || empty($style_definition['effects'])) {
+    $style_effects = $style_definition->getEffects();
+    $style_effects_config = $style_effects->getConfiguration();
+
+    if (empty($style_effects_config)) {
       return FALSE;
     }
 
     $transformation = array();
     $tmp_effect = array();
 
-    foreach ($style_definition['effects'] as $effect) {
-      if (!isset($effects[$effect['name']])) {
+    foreach ($style_effects_config as $effect) {
+      if (!isset($effects[$effect['id']])) {
         continue;
       }
 
-      $function = $effects[$effect['name']]['callback'];
+      $function = $effects[$effect['id']]['callback'];
       $return = $function($effect, $tmp_effect, $resource);
       // Ignore if return data is not an array or null data.
       if (empty($return) || !is_array($return) || !isset($return['type'])) {
@@ -568,7 +593,7 @@ function cloudinary_stream_wrapper_transformation($style_name, $resource) {
     }
     // Merge into transformation if not null.
     if ($tmp_effect) {
-      $transformation[] = $tmp_effect;
+      $transformation = array_merge(array_filter($transformation), $tmp_effect);
       unset($tmp_effect);
     }
 
@@ -587,9 +612,9 @@ function cloudinary_stream_wrapper_transformation_info() {
   $effects = &drupal_static(__FUNCTION__);
 
   if (!isset($effects)) {
-    $effects = module_invoke_all('cloudinary_stream_wrapper_transformation');
+    $effects = \Drupal::moduleHandler()->invokeAll('cloudinary_stream_wrapper_transformation');
     // Support alter, so that other modules can modify exist settings.
-    drupal_alter('cloudinary_stream_wrapper_transformation', $effects);
+    \Drupal::moduleHandler()->alter('cloudinary_stream_wrapper_transformation', $effects);
 
     foreach ($effects as $key => $process) {
       // Load extra process file.
@@ -655,9 +680,9 @@ function cloudinary_stream_wrapper_remote_image_info($url, $filesize = FALSE) {
     fclose($handle);
   }
   catch (Exception $e) {
-    watchdog('cloudinary_stream_wrapper', 'Failed to get remote image info [%url], [%message].', array(
+    \Drupal::logger('cloudinary_stream_wrapper')->error('Failed to get remote image info [%url], [%message].', array(
       '%url' => $url,
-      '%message' => $e->getMessage()), WATCHDOG_ERROR);
+      '%message' => $e->getMessage()));
   }
 
   return $result;

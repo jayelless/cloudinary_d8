@@ -5,6 +5,8 @@
  * File for the cloudinary_storage_db module.
  */
 
+use Drupal\cloudinary_storage_db\CloudinaryStorageDb;
+
 /**
  * Implements hook_cloudinary_storage_info().
  */
@@ -12,7 +14,7 @@ function cloudinary_storage_db_cloudinary_storage_info() {
   return array(
     'cloudinary_storage_db' => array(
       'title' => t('Database'),
-      'class' => 'CloudinaryStorageDb',
+      'class' => '\Drupal\cloudinary_storage_db\CloudinaryStorageDb',
     ),
   );
 }

@@ -10,5 +10,7 @@
  */
 function cloudinary_storage_uninstall() {
   // Remove unused variables.
-  variable_del('cloudinary_storage_default');
+  $config = \Drupal::service('config.factory')->getEditable('cloudinary_storage.settings');
+  $config->clear('cloudinary_storage_default');
+  $config->save();
 }

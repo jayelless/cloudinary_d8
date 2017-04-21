@@ -44,6 +44,8 @@ function cloudinary_theme() {
   );
 }
 
+use Drupal\Core\Url;
+
 /**
  * Theme function for Cloudinary effect.
  */
@@ -100,23 +102,35 @@ function theme_cloudinary_image_style_preview($variables) {
   $preview_attributes = array_intersect_key($preview_image, array('width' => '', 'height' => ''));
   $preview_attributes['style'] = 'width: ' . $preview_width . 'px; height: ' . $preview_height . 'px;';
 
-  $cloudinary_original_image = theme('image', array(
-    'path' => $original,
-    'alt' => t('Sample original image'),
-    'title' => '',
-    'attributes' => $original_attributes,
-  ));
+  $original_image = array(
+    '#theme' => 'image',
+    'attributes' => array(
+      'src' => $original,
+      'alt' => t('Sample original image'),
+      'title' => '',
+      'attributes' => $original_attributes,
+    ),
+  );
+  $cloudinary_original_image = \Drupal::service('renderer')->render($original_image);
 
-  $cloudinary_preview_image = theme('image', array(
-    'path' => $preview,
-    'alt' => t('Sample modified image'),
-    'title' => '',
-    'attributes' => $preview_attributes,
-  ));
+  $preview_image = array(
+    '#theme' => 'image',
+    'attributes' => array(
+      'src' => $preview,
+      'alt' => t('Sample modified image'),
+      'title' => '',
+      'attributes' => $original_attributes,
+    ),
+  );
+  $cloudinary_preview_image = \Drupal::service('renderer')->render($preview_image);
+
 
   $output = '<div class="image-style-preview preview clearfix">';
   $output .= '<div class="preview-image-wrapper">';
-  $output .= t('original') . ' (' . l(t('view actual size'), $original) . ')';
+  $url = Url::fromUri($original);
+  $original_link = \Drupal::l(t('view actual size'), $url);
+  $output .= t('original') . ' (' . $original_link . ')';
+
   $output .= '<div class="preview-image original-image" style="' . $original_attributes['style'] . '">';
   $output .= '<a href="' . $original . '">' . $cloudinary_original_image . '</a>';
   $output .= '<div class="height" style="height: ' . $original_height . 'px"><span>' . $original_image['height'] . 'px</span></div>';
@@ -125,7 +139,10 @@ function theme_cloudinary_image_style_preview($variables) {
   $output .= '</div>';
   // Build the preview of the image style.
   $output .= '<div class="preview-image-wrapper">';
-  $output .= t('transformation') . ' (' . l(t('view actual size'), $preview) . ')';
+  $url = Url::fromUri($preview);
+  $preview_link = \Drupal::l(t('view actual size'), $url);
+  $output .= t('transformation') . ' (' . $preview_link . ')';
+
   $output .= '<div class="preview-image modified-image" style="' . $preview_attributes['style'] . '">';
   $output .= '<a href="' . $preview . '">' . $cloudinary_preview_image . '</a>';
   $output .= '<div class="height" style="height: ' . $preview_height . 'px"><span>' . $preview_image['height'] . 'px</span></div>';
@@ -531,7 +548,16 @@ function cloudinary_crop_form_preview($data) {
   }
 
   $styles = array('original' => $original, 'preview' => $preview);
-  return theme('cloudinary_image_style_preview', $styles);
+  // @FIXME
+// theme() has been renamed to _theme() and should NEVER be called directly.
+// Calling _theme() directly can alter the expected output and potentially
+// introduce security issues (see https://www.drupal.org/node/2195739). You
+// should use renderable arrays instead.
+// 
+// 
+// @see https://www.drupal.org/node/2195739
+  return _theme('cloudinary_image_style_preview', $styles);
+
 }
 
 /**
@@ -614,7 +640,9 @@ function cloudinary_preprocess_transformation($data) {
 function cloudinary_upload_sample() {
   if (!file_exists(CLOUDINARY_SAMPLE)) {
     if (file_save_data(file_get_contents(drupal_get_path('module', 'image') . '/sample.png'), CLOUDINARY_SAMPLE)) {
-      variable_set('image_style_preview_image', CLOUDINARY_SAMPLE);
+      $config = \Drupal::service('config.factory')->getEditable('image.settings');
+      $config->set('image.settings.preview_image', CLOUDINARY_SAMPLE);
+      $config->save();
     }
   }
 }

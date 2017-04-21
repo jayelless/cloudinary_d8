@@ -1,0 +1,7 @@
+name: Cloudinary
+description: 'The module provides image transformation of Cloudinay, auto convert default image style effects with Cloudinary transformation.'
+package: Cloudinary
+core: 8.x
+dependencies:
+  - cloudinary_stream_wrapper
+type: module

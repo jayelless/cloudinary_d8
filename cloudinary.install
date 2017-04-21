@@ -9,7 +9,12 @@
  * Implements hook_install().
  */
 function cloudinary_install() {
-  variable_set('cloudinary_image_style_preview_image', variable_get('image_style_preview_image', FALSE));
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// variable_set('cloudinary_image_style_preview_image', variable_get('image_style_preview_image', FALSE));
+
 }
 
 /**
@@ -17,10 +22,21 @@ function cloudinary_install() {
  */
 function cloudinary_uninstall() {
   // Remove unused variables.
-  $preview_image = variable_get('cloudinary_image_style_preview_image', FALSE);
-  variable_del('cloudinary_image_style_preview_image');
-  variable_del('image_style_preview_image');
+  $config = \Drupal::service('config.factory')->getEditable('cloudinary.settings');
+  $config->clear('cloudinary_image_style_preview_image');
+  $config->save();
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// variable_del('image_style_preview_image');
+
   if ($preview_image) {
-    variable_set('image_style_preview_image', $preview_image);
+    // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// variable_set('image_style_preview_image', $preview_image);
+
   }
 }
