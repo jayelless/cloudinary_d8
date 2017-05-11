@@ -5,4 +5,4 @@ services:
       - { name: stream_wrapper, scheme: cloudinary }
   cloudinary_stream_wrapper.service_provider:
     class: Drupal\cloudinary_stream_wrapper\CloudinaryStreamWrapperServiceProvider
-    arguments: [@service_container]
+    arguments: ['@service_container']
