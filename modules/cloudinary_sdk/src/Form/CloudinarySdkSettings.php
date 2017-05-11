@@ -28,7 +28,9 @@ class CloudinarySdkSettings extends ConfigFormBase {
 
     $values = $form_state->getValues();
     foreach ($values as $field => $value) {
-      $config->set(str_replace('.', '_', $field), $value);
+      if (!in_array($field, array('op', 'submit', 'form_id', 'form_token', 'form_build_id'))) {
+        $config->set(str_replace('.', '_', $field), $value);
+      }
     }
     $config->save();
 
@@ -138,7 +140,7 @@ class CloudinarySdkSettings extends ConfigFormBase {
         $api = new \Cloudinary\Api();
         $api->ping();
       }
-      
+
         catch (Exception $e) {
         $form_state->setErrorByName('', $e->getMessage());
       }
