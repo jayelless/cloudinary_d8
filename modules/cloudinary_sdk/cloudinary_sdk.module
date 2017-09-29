@@ -27,51 +27,6 @@ define('CLOUDINARY_SDK_OLD_VERSION', 1);
 define('CLOUDINARY_SDK_LOADED', 2);
 
 /**
- * Implements hook_libraries_info().
- */
-function cloudinary_sdk_libraries_info() {
-  return array(
-    'cloudinary' => array(
-      'name' => 'Cloudinary SDK for PHP',
-      'vendor url' => 'http://cloudinary.com/',
-      'download url' => 'https://github.com/cloudinary/cloudinary_php',
-      'path' => 'src',
-      'version arguments' => array(
-        'file' => '/vendor/cloudinary/cloudinary_php/src/Cloudinary.php',
-        'pattern' => '/const VERSION = "(.*)";/',
-        'lines' => 13,
-      ),
-      'files' => array(
-        'php' => array(
-          'Cloudinary.php',
-          'Uploader.php',
-          'Api.php',
-        ),
-      ),
-      'callbacks' => array(
-        // Initialize cloudinary sdk after the library is loaded.
-        'post-load' => array(
-          'cloudinary_sdk_callback',
-        ),
-      ),
-    ),
-  );
-}
-
-/**
- * Initialize cloudinary sdk after the library is loaded.
- */
-function cloudinary_sdk_callback(&$library, $version = NULL, $variant = NULL) {
-  $initialized = &drupal_static(__FUNCTION__, FALSE);
-
-  if ($initialized !== TRUE) {
-    $initialized = cloudinary_sdk_init();
-  }
-
-  return $initialized;
-}
-
-/**
  * Cloudinary configuration initialization.
  */
 function cloudinary_sdk_init($config = array()) {
