@@ -361,9 +361,8 @@ function cloudinary_stream_wrapper_create_file($base64_data, $options) {
     \Drupal::logger('cloudinary_stream_wrapper')->error('Upload file [%file] into Cloudinary failed, [%message].', array(
       '%file' => $options['public_id'],
       '%message' => $e->getMessage()));
+    throw $e;
   }
-
-  return FALSE;
 }
 
 /**
